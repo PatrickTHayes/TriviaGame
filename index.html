@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Trivia Game No Timers yet</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+</head>
+
+<body>
+    <div class="trivia-container">
+        <div class="container-fluid">
+            <div class="row row1">
+                <div class="col-md-12">
+                    <h1>Open Trivia Database Random Trivia!</h1>
+                </div>
+            </div>
+            <div class="row row2">
+                <div class="col-md-12 Timer-startBtn">
+                    <h4></h4>
+                    <button type="button" class="btn btn-danger" id="startBtn" onclick="start()">Start button </button>
+                </div>
+            </div>
+            <div class="row row3">
+                <button type="button" class="btn btn-success"><h3><span class="category"></span>Hit start when you're ready to play! <span class="Difficulty"></span></h3></button>
+            </div>
+
+
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        //var title = "frozen";
+        //var queryURL = "https://www.omdbapi.com/?t=" + title + "&y=&plot=short&apikey=40e9cece";
+        var apiQuestionArray; //self explaned, not an array but an object, apiQuestionArray.results is the array.
+        var countQuestions; //tracks questions asked to compare to total questions
+        var correctAnswers; //all 3 self explaned
+        var incorrectAnswers;
+        var unanswered;
+        var rightAnswer; //tracks which button holds the right answer for on click event
+        var clockTime; //controls time
+        var intervalId; //controls timer
+        var right = ["images/correct.gif", "images/correct1.gif", "images/correct2.gif", "images/correct3.gif"];
+        var wrong = ["images/wrong.gif", "images/wrong1.gif", "images/wrong2.gif", "images/wrong3.gif"];
+
+        function start() {
+            //clear out global variables
+            console.log("start function called");
+            countQuestions = 0;
+            correctAnswers = 0;
+            incorrectAnswers = 0;
+            unanswered = 0;
+            apiQuestionArray = [];
+            //call opentdb and generate a set of questions. Currently set 8 questions, multiple choice
+            $.ajax({
+                url: 'https://opentdb.com/api.php?amount=8&type=multiple', // change url to change current question settings.
+                method: "GET"
+            }).done(function(response) {
+                apiQuestionArray = response;
+                //display();
+                /*console.log(response);
+                console.log(response.results[0].category);*/
+            });
+            setTimeout(function() { //waits 1 second to ensure question array has come back
+                console.log(apiQuestionArray);
+                display();
+            }, 1000);
+        }
+
+        function display() {
+            console.log("display function called");
+            if (countQuestions === apiQuestionArray.results.length) {
+                endgame();
+                console.log("endgame logic is working");
+                return;
+            }
+            countQuestions++;
+            //puts bootstrap  questioner layout in
+            $(".trivia-container").html('<div class="container-fluid"> <div class = "row row1" ><div class="col-md-12"><h1>Open Trivia Database Random Trivia!</h1></div></div> <div class = "row row2" ><div class="col-md-12 Timer-startBtn"><h4>Timer placeholder</h4><button type="button" class="btn btn-danger">Start button placeholder</button></div> </div> <div class = "row row3" ><button type="button" class="btn btn-success"><h3><span class="category"></span><span class="difficulty"></span></h3></button> </div> <div class = "row row3" ><button type="button" class="btn btn-success" id="question"><h4>Question Place holder</h4></button> </div> <div class = "row row4" ><div class="col-md-12"><div class="row subrow1"><div class="col-md-6 multchoice"><button type="button" class="btn btn-danger" id="answer1"><h4>Multiple choice holder</h4></button></div><div class="col-md-6 multchoice"><button type="button" class="btn btn-danger" id="answer2"><h4>Multiple choice holder</h4></button></div></div><div class="row subrow2"><div class="col-md-6 multchoice"><button type="button" class="btn btn-danger" id="answer3"><h4>Multiple choice holder</h4></button></div><div class="col-md-6 multchoice"><button type="button" class="btn btn-danger" id="answer4"><h4>Multiple choice holder</h4></button></div></div></div></div></div>');
+
+            var thisq = apiQuestionArray.results[countQuestions - 1]; //makes sure were grabbing from the right element of the array
+            //pull info from our api array and inserts the information in the right place
+            $("#question").html(thisq.question);
+            $(".category").html("Category: " + thisq.category);
+            $(".difficulty").html(" Difficulty: " + thisq.difficulty);
+            // Need to write to multiple choice answers but need to put the answer in a random spot.
+            var j = 0; //loop counter variable
+            rightAnswer = Math.floor(Math.random() * 4); //generates random number between 1-4 for right answer to be placed
+            //console.log(rightAnswer);
+            for (var i = 0; i < 4; i++) {
+                if (i === rightAnswer) {
+                    $("#answer" + (1 + i)).html(thisq.correct_answer);
+                }
+                else {
+                    $("#answer" + (1 + i)).html(thisq.incorrect_answers[j]);
+                    j++;
+                }
+            }
+            setTimeout(function() { //waits to make sure IDs are made before setting the on click functions so they are attached.
+                //on answer click functions
+                $("#answer1").on("click", function() {
+                    answerchecker(0);
+                });
+                $("#answer2").on("click", function() {
+                    answerchecker(1);
+                });
+                $("#answer3").on("click", function() {
+                    answerchecker(2);
+                });
+                $("#answer4").on("click", function() {
+                    answerchecker(3);
+                });
+            }, 1000);
+            questionTimer();
+        }
+
+        function questionTimer() { //begins clock, sets time at 30.
+            clockTime = 30;
+            intervalId = setInterval(decrement, 1000);
+
+        }
+
+        function decrement() {
+            clockTime--;
+            $(".Timer-startBtn").html("<h2>" + clockTime + "</h2>");
+            if (clockTime === 0) {
+                unanswered++;
+                $(".trivia-container").html("<img src='" + wrong[rightAnswer] + "'>"); //displays a gif associated with a wrong answer
+                clearIntervalTimer();
+                //alert("Time Up!");
+            }
+
+        }
+
+        function answerchecker(input) {
+            console.log("answerchecker called");
+            if (input === rightAnswer) {
+                correctAnswers++;
+                $(".trivia-container").html("<img src='" + right[rightAnswer] + "'>"); //displays a gif associated with the right answer
+                //Call to a element and display right  or call an alert?
+            }
+            else {
+                incorrectAnswers++;
+                $(".trivia-container").html("<img src='" + wrong[rightAnswer] + "'>"); //displays a gif associated with a wrong answer
+                //Call to a element and display wrong  or call an alert?
+            }
+            clearIntervalTimer();
+
+        }
+
+        function clearIntervalTimer() {
+            console.log("clearIntervalTimer called");
+            clearInterval(intervalId);
+            setTimeout(display, 3000); //keeps new image displayed for 5 seconds.
+
+        }
+
+        function endgame() {
+            $(".trivia-container").html('<div class="container-fluid"><div class="row row1"><div class="col-md-12"><h1>Open Trivia Database Random Trivia!</h1></div></div><div class="row row2"><div class="col-md-12 Timer-startBtn"><h4></h4><button type="button" class="btn btn-danger" id="startBtn" onclick="start()">Start button </button></div></div><div class="row"><h3>Game OVER, But at least you did ....</h3></div><div class="row"><h5 id="numCorrect">Correctly answered: </h5><h5 id="numIncorrect">Incorrectly answered: </h5><h5 id="numUnanswered">Went AFK for: </h5></div><div class="row row3"><button type="button" class="btn btn-success"><h3>Hit start when youre ready to play again!</h3></button></div></div>');
+            $("#numCorrect").append(correctAnswers);
+            $("#numIncorrect").append(incorrectAnswers);
+            $("#numUnanswered").append(unanswered);
+            //console.log("correct Answers" + correctAnswers);
+            //console.log("incorrectAnswers" + incorrectAnswers);
+            //console.log("stuff you missed for 500 : " + unanswered);
+            //start();
+        }
+        // ---------------------------------------------------------
+    </script>
+
+</body>
+
+</html>
